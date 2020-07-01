@@ -1,6 +1,6 @@
 # NLP-Basics-Insight20B-Workshop
 
-Objectives: 
+## Objectives: 
 
 To understand: 
 *   the basic NLP pipeline
