@@ -41,7 +41,7 @@ Here is an outline of the steps that we could use for processig the text data:
 1.   Sentence Tokenization
 2.   Word Tokenization
 3.   Conversion to lower case
-4.   Lemmatization and Stemming 
+4.   Lexicon Normalization: Lemmatization and Stemming 
 5.   Removal of puncatuations and stop words (and numbers - depending on the context)
 6.   Parts-of-speech (POS) tagging 
 7.   Creation of n-grams 
@@ -62,7 +62,282 @@ Here is an outline of the steps that we could use for processig the text data:
 > * Character level embeddings: ELMo and Flair 
 
 We will explore each of these topics using a dataset.
+
+## **Resources in Python**
+
+* [NLTK](https://www.nltk.org/): Natural Language Tool Kit 
+* [spaCy](https://spacy.io/)
+* [Gensim](https://github.com/RaRe-Technologies/gensim)
+-----
+* [TextBlob](https://textblob.readthedocs.io/en/dev/)
+* [CoreNLP](https://stanfordnlp.github.io/CoreNLP/)
+* [polyglot](https://polyglot.readthedocs.io/en/latest/index.html)
+
+### **NLP Pipeline**
+
+#### *Spell Check*
+ To check for spelling errors and to get possible alternatives for the misspelled words. 
+
+
+*   Using `autocorrect` module 
+*   Using `pyspellchecker` module: It uses a *Levenshtein Distance algorithm* to find permutations within an edit distance of 2 from the original word. It then compares all permutations (insertions, deletions, replacements, and transpositions) to known words in a word frequency list. Those words that are found more often in the frequency list are more likely the correct results.
+*   Using `textblob` module: returns two values – a recommended correction for this word, and a confidence score associated with the correction.
 """
 
+#!pip install autocorrect
+#Using autocorrect module 
+from autocorrect import Speller
+
+spell = Speller(lang='en')
+
+print(spell('caaaar'))
+print(spell('mussage'))
+print(spell('survice'))
+print(spell('hte'))
+print(spell("Let is check whehter spel check works hree"))  #Correct sentence: Let us check whether spell check works here
+
+#Using pyspellchecker 
+#!pip install pyspellchecker
+from spellchecker import SpellChecker
+
+spell = SpellChecker()
+
+# find those words that may be misspelled
+misspelled = spell.unknown(['let', 'us', 'wlak','on','the','groun'])
+
+for word in misspelled:
+    # Get the one `most likely` answer
+    print(spell.correction(word))
+
+    # Get a list of `likely` options
+    print(spell.candidates(word))
+
+#!pip install textblob
+from textblob import Word
+from textblob import TextBlob
+
+word = Word('personell')
+print(word.spellcheck())
+
+b = TextBlob("I havv goood speling!")
+print(b.correct())
+
+"""#### *Sentence Tokenization*
+
+To break paragraphs into sentences
+"""
+
+from nltk.tokenize import sent_tokenize
+
+text=""""Oh, Marilla, looking forward to things is half the pleasure of them," exclaimed Anne. 
+        "You mayn’t get the things themselves; but nothing can prevent you from having the fun of looking forward to them. 
+        Mrs. Lynde says, 'Blessed are they who expect nothing for they shall not be disappointed.' 
+        But I think it would be worse to expect nothing than to be disappointed."""
+
+#Text from Anne of Green Gables
+
+tokenized_text=sent_tokenize(text)
+
+print(tokenized_text)
+
+"""#### *Word Tokenization*
+
+To break sentences into words (or tokens)
+"""
+
+from nltk.tokenize import word_tokenize
+
+tokenized_word=word_tokenize(text)
+print(tokenized_word)
+
+"""#### *Conversion to lower case*
+
+Converting the text (in upper case or sentence case) to lower case. 
+
+1.   Helps to maintain consistency of expected output.
+2.   Maintains uniformity among different cases - easiers to search. For instance, searching for "Canada" may not yield results - if the text is "canada"
+3.   Often times, word embeddings might perform poorly
+"""
+
+lower_case_text = text.lower()
+print(lower_case_text)
+
+"""#### *Removal of punctuations and stop words*
+
+Stop words such as "a", "the", "in" etc do not add meaning in the text analysis and are considered as noise in the data. Hence, they should be removed. Also, it is advisable to remove the punctuations and numbers (depending upon the context). 
+
+P.S.: Sometimes, removing the punctuation might distort the meaning of the word. For instance, in the sentence "you're good" would return "youre good" - where the meaning of the sentence is lost
+"""
+
+from nltk.corpus import stopwords
+stop_words=set(stopwords.words("english"))
+print(stop_words)
+
+
+filtered_sent=[]
+
+for w in tokenized_word:
+    if w not in stop_words:
+        filtered_sent.append(w)
+
+print("Tokenized Sentence:",tokenized_word)
+print("Filterd Sentence:",filtered_sent)
+
+#Removal of punctuations
+
+words_no_punkt = [word for word in tokenized_word if word.isalpha()]
+print(words_no_punkt[:100])
+
+"""#### *Lexicon normalization: Lemmatization and Stemming*
+
+*Stemming*: Reduces the words to their root form by removing the derivational affixes. For instance, connection, connected, connecting word reduce to a common word "connect". 
+
+> 1.   Porter Stemmer: Uses a set of five rules to remove the suffix (also known as suffix stripping)
+> 2.   Lancaster Stemmer: Uses an iterative algorithm that uses a set of 120 rules to remove the suffixes. The algorithm tries to find an applicable rule by the last character of the word. Each rule specifies a replacement or deletion of a terminal character. It continues till it could find no such rule. Another stopping criterion - a word starting with a vowel and with only two characters left; or a word starting with a consonant and with only three characters left. 
+The process repeats till it meets one of the stopping criteria. However, this could lead to over stemming. 
+
+*Lemmatization*: Reduces words to their base word (or called lemmas). Since it is based on morphological analysis, lemmatization is better than stemming. Stemmer ignores the context of the word. For example, lemma of "better" is "good" - which is missed by the stemmer.
+"""
+
+from nltk import PorterStemmer, LancasterStemmer  #Other stemmer is LancasterStemmer; PorterStemmer is commonly used since it is simple and fast to use 
+porter = PorterStemmer()
+lancaster=LancasterStemmer()
+
+#A list of words to be stemmed
+word_list = ["friend", "friendship", "friends", "friendships","stabil","destabilize","misunderstanding","railroad","moonlight","football"]
+print("{0:20}{1:20}{2:20}".format("Word","Porter Stemmer","lancaster Stemmer"))
+for word in word_list:
+    print("{0:20}{1:20}{2:20}".format(word,porter.stem(word),lancaster.stem(word)))
+
+from nltk.stem.wordnet import WordNetLemmatizer
+lem = WordNetLemmatizer()
+
+print("{0:20}{1:20}".format("Word","Lemma"))
+for word in words_no_punkt:
+    print ("{0:20}{1:20}".format(word,lem.lemmatize(word)))
+
+for word in words_no_punkt:
+    print ("{0:20}{1:20}".format(word,lem.lemmatize(word, pos="v")))
+
+"""#### *Parts-of-speech (POS) tagging*
+
+Identifies the grammar groups (such as noun, verb, pronoun etc) in the text
+"""
+
+nltk.download('averaged_perceptron_tagger')
+nltk.pos_tag(words_no_punkt[:15]) #IN- preposition; NNP- noun, proper, singular; VB - Verb; RB - adverb; TO: "to" as preposition or infinitive marker; 
+#VBG: verb, present participle or gerund; VBD: verb, past tense
+
+"""#### *Creation of n-grams*"""
+
+
+
+"""## **Classification of Real and Fake News**
+
+To classify whether a news article is fake or real.
+ 
+Data source: [Kaggle](https://www.kaggle.com/clmentbisaillon/fake-and-real-news-dataset?select=Fake.csv)
+"""
+
+import warnings 
+warnings.simplefilter("ignore")
+
+import os 
+from google.colab import files
+
 import pandas as pd 
-import numpy as np
+import numpy as np 
+
+#nltk
+import nltk
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('punkt')
+from nltk.corpus import stopwords 
+from nltk import word_tokenize
+stop_words = set(stopwords.words('english'))
+
+#Feature extraction
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, TfidfTransformer
+
+#Classifiers
+from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, ExtraTreesClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import SVC,  LinearSVC
+from sklearn import svm
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import StratifiedKFold
+
+#Performance metrics
+from sklearn.model_selection import KFold
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, confusion_matrix
+from sklearn.metrics import classification_report
+from sklearn.metrics import precision_recall_fscore_support as score
+from sklearn.metrics import precision_recall_fscore_support
+
+uploaded = files.upload()
+
+fake_data = pd.read_csv("Fake.csv")
+real_data = pd.read_csv("True.csv")
+
+fake_data.head()
+
+real_data.head()
+
+#Print the number of missing values in both dataframes: real_data and fake_data
+print("For fake_data")
+print(fake_data.isnull().sum())
+
+print("For real_data")
+print(real_data.isnull().sum())
+
+fake_data["label"] = 1
+real_data["label"] = 0
+print(fake_data.head())
+print(real_data.head())
+
+#Combine the both fake_data and real_data; shuffle the data; and split them into training and test dataset
+
+print("Dimension of Fake News:", fake_data.shape)
+print("Dimension of Real News:", real_data.shape)
+fake_real_data = pd.concat([fake_data,real_data])
+print("Dimension of combined dataset:", fake_real_data.shape)
+fake_real_data = fake_real_data.sample(frac=1).reset_index(drop=True)
+
+#Combining both healdlines and news content to form another column called "content"
+
+fake_real_data["content"] = fake_real_data["title"] + fake_real_data["text"]
+print(fake_real_data.columns)
+
+#Splitting dataset into train and test dataset 
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(
+    fake_real_data["content"], fake_real_data['label'], test_size=0.3, random_state=1)
+
+print("Dimension of training data:", X_train.shape)
+print("Dimension of test data:", X_test.shape)
+
+"""### **Text Pre-processing**
+
+### **Exploratory Analysis**
+
+### **Word Embeddings**
+
+### **Classifiers**
+
+### **Performance Evaluation**
+
+## **Future Work**
+
+I have used NLTK primarily for the analysis. It will be continuously upated to give a comparison of preprocessing the text using NLTK and spaCy. Also, I intend to extend the notebook by implementing deep learning models for text classification. 
+
+For more information: [GitHub](https://github.com/dhanyajothimani)
+
+### **References** 
+
+Examples and concepts compiled from various sources including Python package documentation, Data camp, and StackOverflow.
+"""
